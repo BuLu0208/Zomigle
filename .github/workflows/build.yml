@@ -26,7 +26,9 @@ jobs:
           -archivePath build/Zomigle.xcarchive \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_ALLOWED=NO \
+          OTHER_CFLAGS="-DPLATFORM_APPLICATION=1" \
+          OTHER_SWIFT_FLAGS="-DPLATFORM_APPLICATION"
           
     - name: Create IPA
       run: |
