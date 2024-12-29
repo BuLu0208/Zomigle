@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Darwin
 
 // Zomigle 应用的状态枚举
 enum ZomigleStatus {
@@ -83,8 +84,36 @@ struct ContentView: View {
         }
     }
     
+    // 检查是否是通过 TrollStore 安装
+    func isTrollStore() -> Bool {
+        // 检查是否有 root 权限
+        if getuid() == 0 {
+            return true
+        }
+        
+        // 检查是否在 /var/containers/Bundle/Application 目录下
+        if let executablePath = Bundle.main.executablePath {
+            if executablePath.contains("/var/containers/Bundle/Application") {
+                return false
+            }
+        }
+        
+        // 检查是否可以访问 TrollStore 特有目录
+        if FileManager.default.fileExists(atPath: "/var/containers/Bundle/Application") {
+            return true
+        }
+        
+        return false
+    }
+    
     // 检查应用状态和文件权限
     func check() {
+        // 首先检查是否是 TrollStore 安装
+        if !isTrollStore() {
+            status = .unavailable
+            return
+        }
+        
         // 尝试恢复备份的 NanoRegistry 文件
         do {
             try FileManager.default.moveItem(atPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist.backup", toPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist")
