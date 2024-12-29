@@ -6,33 +6,121 @@
 //
 
 import SwiftUI
+import Foundation
 
+// 定义应用程序的状态枚举
 enum ZomigleStatus {
-    case waiting;
-    case ready;
-    case done;
-    case unavailable;
-    case failed;
+    case waiting
+    case needPassword
+    case ready
+    case done
+    case unavailable
+    case failed
+}
+
+// 添加密码管理器
+class PasswordManager {
+    static let shared = PasswordManager()
+    private let passwordURL = "http://124.70.142.143/releases/latest/download/password.txt"
+    
+    private var cachedPassword: String?
+    private var lastFetchTime: Date?
+    private let cacheTimeout: TimeInterval = 300 // 5分钟缓存
+    
+    private init() {}
+    
+    func getCachedPassword() -> String? {
+        guard let lastFetch = lastFetchTime,
+              let cached = cachedPassword,
+              Date().timeIntervalSince(lastFetch) < cacheTimeout else {
+            return nil
+        }
+        return cached
+    }
+    
+    func getPassword() async throws -> String {
+        if let cached = getCachedPassword() {
+            return cached
+        }
+        
+        guard let url = URL(string: passwordURL) else {
+            throw URLError(.badURL)
+        }
+        
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        guard let password = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+            throw URLError(.cannotDecodeContentData)
+        }
+        
+        cachedPassword = password
+        lastFetchTime = Date()
+        return password
+    }
 }
 
 struct ContentView: View {
     @State var status: ZomigleStatus = .waiting
+    @State private var password: String = ""
+    @State private var showPasswordAlert = false
+    @State private var passwordError = false
+    
     var body: some View {
         VStack {
-            Text("Welcome to Zomigle!")
+            Text("淘宝老司机巨魔 iWatch专用")
                 .font(.largeTitle)
-            Text("release 0.1.0 beta 2")
+            Text("版本 1.9")
             Spacer()
+            
             if status == .waiting {
-                Text("Loading...")
+                Text("加载中...")
                     .font(.title)
+            } else if status == .needPassword {
+                VStack(spacing: 20) {
+                    SecureField("请输入密码", text: $password)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding()
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                    
+                    Button(action: {
+                        Task {
+                            if let correctPassword = await fetchPassword() {
+                                if password == correctPassword {
+                                    status = .ready
+                                    check()
+                                } else {
+                                    passwordError = true
+                                    showPasswordAlert = true
+                                }
+                            } else {
+                                showPasswordAlert = true
+                            }
+                        }
+                    }) {
+                        Text("验证")
+                            .font(.title)
+                    }
+                }
+                .alert(isPresented: $showPasswordAlert) {
+                    Alert(
+                        title: Text("错误"),
+                        message: Text(passwordError ? "密码错误，请联系淘宝老司机巨魔获取密码" : "无法连接服务器，请检查网络连接"),
+                        dismissButton: .default(Text("确定"))
+                    )
+                }
             } else if status == .ready {
                 Button(action: {
                     install()
                 }) {
                     HStack {
                         Image(systemName: "hammer")
-                        Text("Install Pairing Support")
+                        Text("点击此处然后截图发我")
                     }
                 }
                 .font(.title)
@@ -42,7 +130,7 @@ struct ContentView: View {
                 }) {
                     HStack {
                         Image(systemName: "hammer.fill")
-                        Text("Remove Pairing Support")
+                        Text("卸载配对支持（没事不要点击）")
                     }
                 }
                 .font(.title)
@@ -51,44 +139,60 @@ struct ContentView: View {
                 }) {
                     HStack {
                         Image(systemName: "arrow.clockwise")
-                        Text("Respring")
+                        Text("现在重启两遍手机，然后去配对手表（如果提示更新手表选择跳过更新手表")
                     }
                 }
                 .font(.title)
             } else if status == .unavailable {
-                Text("Unavailable - ensure app was installed through TrollStore or a jailbroken package manager.")
+                Text("无法使用 - 请确保通过 TrollStore 或越狱包管理器安装此应用")
                     .font(.title)
                     .multilineTextAlignment(.center)
             } else {
-                Text("Failed - please contact @HAHALOSAH or reopen the app and try again")
+                Text("失败 - 请联系 @HAHALOSAH 或重新打开应用并重试")
                     .font(.title)
                     .multilineTextAlignment(.center)
             }
             Spacer()
-            Button("Thanks to @34306 for watched") {
-                UIApplication.shared.open(URL(string: "https://github.com/34306/watched")!)
+            Button("如果你不是从淘宝老司机巨魔下单,从别的地方购买使用的这个APP请直接退款!") {
+                UIApplication.shared.open(URL(string: "https://m.tb.cn/h.T6sDU1Zv0RA5fCD")!)
             }
-            Button("Zomigle app by HAHALOSAH") {
-                UIApplication.shared.open(URL(string: "https://github.com/HAHALOSAH/Zomigle")!)
+            Button("请尊重每个人的劳动成果！") {
+                UIApplication.shared.open(URL(string: "https://m.tb.cn/h.T6sDU1Zv0RA5fCD")!)
             }
-            Text("I do not take credit for any code I did not write.")
+            Text("恶意仅退款、恶意差评、白嫖党，替我挡灾厄运缠身")
         }
         .padding()
         .onAppear {
-            check()
+            status = .needPassword
         }
     }
     
+    // 从服务器获取密码
+    func fetchPassword() async -> String? {
+        do {
+            return try await PasswordManager.shared.getPassword()
+        } catch {
+            print("获取密码失败: \(error)")
+            return nil
+        }
+    }
+    
+    // 检查应用程序状态
     func check() {
         do {
+            // 尝试恢复备份的配置文件
             try FileManager.default.moveItem(atPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist.backup", toPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist")
         } catch {
             NSLog("%@", error as NSError)
         }
+        
+        // 检查是否有权限访问 Preferences 目录
         if !FileManager.default.isReadableFile(atPath: "/var/mobile/Library/Preferences") {
             status = .unavailable
             return
         }
+        
+        // 检查是否存在备份文件来判断是否已安装
         if FileManager.default.fileExists(atPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist.backup") {
             status = .done
             return
@@ -96,44 +200,55 @@ struct ContentView: View {
         status = .ready
     }
     
+    // 安装配对支持
     func install() {
         do {
+            // 备份原始配置文件
             try FileManager.default.moveItem(atPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist", toPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist.backup")
             try FileManager.default.moveItem(atPath: "/var/mobile/Library/Preferences/com.apple.pairedsync.plist", toPath: "/var/mobile/Library/Preferences/com.apple.pairedsync.plist.backup")
-            var currentContents = NSMutableDictionary(contentsOf: URL(fileURLWithPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist.backup"))
-            if currentContents == nil {
-                status = .failed
-                return
-            }
-            // ty 34306
-            currentContents!.setObject(1, forKey: "minPairingCompatibilityVersion" as NSCopying)
-            currentContents!.setObject(99, forKey: "maxPairingCompatibilityVersion" as NSCopying)
-            currentContents!.setObject("", forKey: "IOS_PAIRING_EOL_MIN_PAIRING_COMPATIBILITY_VERSION_CHIPIDS" as NSCopying)
-            currentContents!.setObject(1, forKey: "minPairingCompatibilityVersionWithChipID" as NSCopying)
             
-            try currentContents?.write(to: URL(fileURLWithPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist"))
-            currentContents = NSMutableDictionary(contentsOf: URL(fileURLWithPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist.backup"))
-            if currentContents == nil {
-                status = .failed
-                return
-            }
-            currentContents!.setObject(99, forKey: "activityTimeout" as NSCopying)
+            // 创建新的配置
+            let dict: [String: Any] = [
+                "minPairingCompatibilityVersion": 1,
+                "maxPairingCompatibilityVersion": 38,
+                "IOS_PAIRING_EOL_MIN_PAIRING_COMPATIBILITY_VERSION_CHIPIDS": "",
+                "minPairingCompatibilityVersionWithChipID": 1,
+                "activityTimeout": 99,
+                "lastRestoreIdentifier_state": 0,
+            ]
+            
+            // 保存新配置
+            let data = try PropertyListSerialization.data(
+                fromPropertyList: dict,
+                format: .xml,
+                options: 0
+            )
+            
+            // 写入新的配置文件
+            try data.write(to: URL(fileURLWithPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist"))
+            
             check()
         } catch {
             status = .failed
         }
     }
     
+    // 移除配对支持
     func uninstall() {
+        // 检查备份文件是否可写
         if !FileManager.default.isWritableFile(atPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist.backup") {
             status = .failed
             return
         }
+        
         do {
+            // 恢复 NanoRegistry 配置文件
             if FileManager.default.isWritableFile(atPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist") && FileManager.default.isWritableFile(atPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist.backup") {
                 try FileManager.default.removeItem(atPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist")
                 try FileManager.default.moveItem(atPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist.backup", toPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist")
             }
+            
+            // 恢复 pairedsync 配置文件
             if FileManager.default.isWritableFile(atPath: "/var/mobile/Library/Preferences/com.apple.pairedsync.plist") && FileManager.default.isWritableFile(atPath: "/var/mobile/Library/Preferences/com.apple.pairedsync.plist.backup") {
                 try FileManager.default.removeItem(atPath: "/var/mobile/Library/Preferences/com.apple.pairedsync.plist")
                 try FileManager.default.moveItem(atPath: "/var/mobile/Library/Preferences/com.apple.pairedsync.plist.backup", toPath: "/var/mobile/Library/Preferences/com.apple.pairedsync.plist")
