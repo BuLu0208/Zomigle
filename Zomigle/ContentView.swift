@@ -92,8 +92,14 @@ struct ContentView: View {
             NSLog("%@", error as NSError)
         }
         
-        // 检查是否有权限访问 Preferences 目录
-        if !FileManager.default.isReadableFile(atPath: "/var/mobile/Library/Preferences") {
+        // 检查是否有写入权限
+        let testPath = "/var/mobile/Library/Preferences/com.test.plist"
+        let testData = "test".data(using: .utf8)!
+        do {
+            try testData.write(to: URL(fileURLWithPath: testPath))
+            try FileManager.default.removeItem(atPath: testPath)
+        } catch {
+            NSLog("权限检查失败: %@", error as NSError)
             status = .unavailable
             return
         }
