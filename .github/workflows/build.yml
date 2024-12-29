@@ -34,7 +34,7 @@ jobs:
           COPY_PHASE_STRIP=NO \
           ENABLE_BITCODE=NO \
           DEVELOPMENT_TEAM="" \
-          PRODUCT_BUNDLE_IDENTIFIER="com.apple.Preferences"
+          PRODUCT_BUNDLE_IDENTIFIER="xyz.hhls.Zomigle"
           
     - name: Create IPA
       run: |
