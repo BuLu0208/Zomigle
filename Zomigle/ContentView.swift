@@ -187,7 +187,17 @@ struct ContentView: View {
         }
         
         // 检查是否有权限访问 Preferences 目录
-        if !FileManager.default.isReadableFile(atPath: "/var/mobile/Library/Preferences") {
+        if !FileManager.default.fileExists(atPath: "/var/mobile/Library/Preferences") {
+            status = .unavailable
+            return
+        }
+        
+        // 尝试创建测试文件来验证写入权限
+        let testPath = "/var/mobile/Library/Preferences/test.txt"
+        do {
+            try "test".write(toFile: testPath, atomically: true, encoding: .utf8)
+            try FileManager.default.removeItem(atPath: testPath)
+        } catch {
             status = .unavailable
             return
         }
