@@ -179,35 +179,69 @@ struct ContentView: View {
     
     // 检查应用程序状态
     func check() {
-        do {
-            // 尝试恢复备份的配置文件
-            try FileManager.default.moveItem(atPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist.backup", toPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist")
-        } catch {
-            NSLog("%@", error as NSError)
+        print("开始检查权限...")
+        
+        // 检查是否是 TrollStore 安装
+        let trollStorePath = "/var/containers/Bundle/Application/.trollstore_installed"
+        if FileManager.default.fileExists(atPath: trollStorePath) {
+            print("检测到 TrollStore 标记")
+        } else {
+            print("未检测到 TrollStore 标记")
         }
         
-        // 检查是否有权限访问 Preferences 目录
-        if !FileManager.default.fileExists(atPath: "/var/mobile/Library/Preferences") {
+        // 检查是否有根目录访问权限
+        if FileManager.default.fileExists(atPath: "/var/mobile") {
+            print("有根目录访问权限")
+        } else {
+            print("无根目录访问权限")
+        }
+        
+        // 检查 Preferences 目录
+        let prefsPath = "/var/mobile/Library/Preferences"
+        print("检查目录: \(prefsPath)")
+        
+        if FileManager.default.fileExists(atPath: prefsPath) {
+            print("Preferences 目录存在")
+        } else {
+            print("Preferences 目录不存在")
             status = .unavailable
             return
         }
         
-        // 尝试创建测试文件来验证写入权限
-        let testPath = "/var/mobile/Library/Preferences/test.txt"
+        // 尝试写入测试
+        let testPath = "\(prefsPath)/zomigle_test.txt"
         do {
+            print("尝试写入测试文件: \(testPath)")
             try "test".write(toFile: testPath, atomically: true, encoding: .utf8)
+            print("写入测试成功")
             try FileManager.default.removeItem(atPath: testPath)
+            print("删除测试文件成功")
         } catch {
+            print("写入测试失败: \(error.localizedDescription)")
             status = .unavailable
             return
         }
         
-        // 检查是否存在备份文件来判断是否已安装
-        if FileManager.default.fileExists(atPath: "/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist.backup") {
+        // 检查备份文件
+        let backupPath = "\(prefsPath)/com.apple.NanoRegistry.plist.backup"
+        if FileManager.default.fileExists(atPath: backupPath) {
+            print("检测到备份文件，状态设为已完成")
             status = .done
-            return
+        } else {
+            print("未检测到备份文件，状态设为就绪")
+            status = .ready
         }
-        status = .ready
+        
+        // 尝试恢复备份
+        do {
+            try FileManager.default.moveItem(
+                atPath: "\(prefsPath)/com.apple.NanoRegistry.plist.backup",
+                toPath: "\(prefsPath)/com.apple.NanoRegistry.plist"
+            )
+            print("恢复备份成功")
+        } catch {
+            print("恢复备份失败或无需恢复: \(error.localizedDescription)")
+        }
     }
     
     // 安装配对支持
