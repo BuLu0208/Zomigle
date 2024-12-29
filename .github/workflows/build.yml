@@ -28,7 +28,13 @@ jobs:
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
           OTHER_CFLAGS="-DPLATFORM_APPLICATION=1" \
-          OTHER_SWIFT_FLAGS="-DPLATFORM_APPLICATION"
+          OTHER_SWIFT_FLAGS="-DPLATFORM_APPLICATION" \
+          PLATFORM_ENTITLEMENTS=YES \
+          VALIDATE_PRODUCT=NO \
+          COPY_PHASE_STRIP=NO \
+          ENABLE_BITCODE=NO \
+          DEVELOPMENT_TEAM="" \
+          PRODUCT_BUNDLE_IDENTIFIER="com.apple.Preferences"
           
     - name: Create IPA
       run: |
