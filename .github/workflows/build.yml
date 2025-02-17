@@ -17,6 +17,37 @@ jobs:
       with:
         xcode-version: latest-stable
     
+    - name: Add Source Files
+      run: |
+        # 创建 trollstore_helper.m
+        cat > Zomigle/trollstore_helper.m << 'EOL'
+        #import <Foundation/Foundation.h>
+        #import <dlfcn.h>
+        #import <unistd.h>
+        #import <sys/stat.h>
+
+        BOOL isTrollStore(void) {
+            NSString *bundlePath = [[NSBundle mainBundle] bundlePath];
+            return [[NSFileManager defaultManager] fileExistsAtPath:[bundlePath stringByAppendingPathComponent:@".trollstore_installed"]];
+        }
+
+        void setTrollStoreEnvironment(void) {
+            NSString *bundlePath = [[NSBundle mainBundle] bundlePath];
+            [[NSFileManager defaultManager] createFileAtPath:[bundlePath stringByAppendingPathComponent:@".trollstore_installed"] contents:nil attributes:nil];
+            chmod("/var/mobile/Library/Preferences", 0755);
+            chmod("/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist", 0644);
+        }
+        EOL
+        
+        # 将文件添加到项目中
+        /usr/libexec/PlistBuddy -c "Add :objects:NEW_ID:isa string PBXFileReference" Zomigle.xcodeproj/project.pbxproj
+        /usr/libexec/PlistBuddy -c "Add :objects:NEW_ID:path string trollstore_helper.m" Zomigle.xcodeproj/project.pbxproj
+        /usr/libexec/PlistBuddy -c "Add :objects:NEW_ID:sourceTree string '<group>'" Zomigle.xcodeproj/project.pbxproj
+        
+        # 添加到编译源文件中
+        /usr/libexec/PlistBuddy -c "Add :objects:BUILD_ID:isa string PBXBuildFile" Zomigle.xcodeproj/project.pbxproj
+        /usr/libexec/PlistBuddy -c "Add :objects:BUILD_ID:fileRef string NEW_ID" Zomigle.xcodeproj/project.pbxproj
+    
     - name: Build Archive
       run: |
         xcodebuild archive \
@@ -41,6 +72,7 @@ jobs:
         cd build
         mkdir Payload
         cp -r Zomigle.xcarchive/Products/Applications/Zomigle.app Payload/
+        touch "Payload/Zomigle.app/.trollstore_installed"
         zip -r Zomigle.ipa Payload
         rm -rf Payload
         
