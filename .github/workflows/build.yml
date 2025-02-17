@@ -33,28 +33,34 @@ jobs:
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
-          GCC_PREPROCESSOR_DEFINITIONS="TROLLSTORE=1" \
+          GCC_PREPROCESSOR_DEFINITIONS='TROLLSTORE=1 $(inherited)' \
           OTHER_CFLAGS="-DTROLLSTORE=1" \
           PRODUCT_BUNDLE_IDENTIFIER="com.hahalosah.zomigle" \
           CODE_SIGN_ENTITLEMENTS="Zomigle/Zomigle.entitlements" \
-          OTHER_CODE_SIGN_FLAGS="--entitlements Zomigle/Zomigle.entitlements"
+          OTHER_CODE_SIGN_FLAGS="--entitlements Zomigle/Zomigle.entitlements" \
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS="TROLLSTORE"
         
-        # 检查构建输出目录
-        ls -la build/Build/Products/Release-iphoneos/
-        
-    - name: Create Payload Directory
+    - name: Prepare App Bundle
       run: |
         mkdir -p Payload
         cp -r build/Build/Products/Release-iphoneos/Zomigle.app Payload/
-        # 确保 entitlements 文件被正确复制和处理
+        
+        # 添加 TrollStore 标记文件
+        touch Payload/Zomigle.app/.installed_trollstore
+        touch Payload/Zomigle.app/.trollstore_installed
+        
+        # 复制并转换 entitlements
         cp Zomigle/Zomigle.entitlements Payload/Zomigle.app/
         plutil -convert binary1 Payload/Zomigle.app/Zomigle.entitlements
-        # 添加 TrollStore 标记
-        touch Payload/Zomigle.app/.trollstore_installed
+        
+        # 修改 Info.plist
+        /usr/libexec/PlistBuddy -c "Add :TrollStore bool true" Payload/Zomigle.app/Info.plist
+        
+        # 设置正确的权限
+        chmod -R 755 Payload/Zomigle.app
         
     - name: Create TIPA
       run: |
-        # 重命名为 .tipa 而不是 .ipa
         zip -r Zomigle.tipa Payload/
         
     - name: Upload Artifact
