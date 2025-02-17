@@ -51,19 +51,19 @@ jobs:
         
         # 在 PBXFileReference section 中添加文件引用
         FILE_REF="\t\t$HELPER_UUID /* trollstore_helper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = trollstore_helper.m; sourceTree = \"<group>\"; };"
-        PBXPROJ=$(echo "$PBXPROJ" | perl -pe "s/(Begin PBXFileReference section.*$)/\1\n$FILE_REF/")
+        PBXPROJ=$(echo "$PBXPROJ" | perl -0pe "s/(\/\* Begin PBXFileReference section \*\/\n)/\1$FILE_REF\n/")
         
         # 在 PBXBuildFile section 中添加构建文件
         BUILD_FILE="\t\t$BUILD_UUID /* trollstore_helper.m in Sources */ = {isa = PBXBuildFile; fileRef = $HELPER_UUID /* trollstore_helper.m */; };"
-        PBXPROJ=$(echo "$PBXPROJ" | perl -pe "s/(Begin PBXBuildFile section.*$)/\1\n$BUILD_FILE/")
+        PBXPROJ=$(echo "$PBXPROJ" | perl -0pe "s/(\/\* Begin PBXBuildFile section \*\/\n)/\1$BUILD_FILE\n/")
         
         # 在 Zomigle 组中添加文件
         GROUP_FILE="\t\t\t\t$HELPER_UUID /* trollstore_helper.m */,"
-        PBXPROJ=$(echo "$PBXPROJ" | perl -pe "s/(path = Zomigle;.*$)/\1\n$GROUP_FILE/")
+        PBXPROJ=$(echo "$PBXPROJ" | perl -0pe "s/(path = Zomigle;\n)/\1$GROUP_FILE\n/")
         
         # 在编译阶段添加文件
         SOURCE_FILE="\t\t\t\t$BUILD_UUID /* trollstore_helper.m in Sources */,"
-        PBXPROJ=$(echo "$PBXPROJ" | perl -pe "s/(files = \(.*$)/\1\n$SOURCE_FILE/")
+        PBXPROJ=$(echo "$PBXPROJ" | perl -0pe "s/(files = \(\n)/\1$SOURCE_FILE\n/")
         
         # 写回文件
         echo "$PBXPROJ" > Zomigle.xcodeproj/project.pbxproj
