@@ -32,7 +32,9 @@ jobs:
           DEVELOPMENT_TEAM="" \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_ALLOWED=NO \
+          OTHER_CFLAGS="-DTROLLSTORE=1" \
+          OTHER_CODE_SIGN_FLAGS="--entitlements Zomigle/Zomigle.entitlements"
         
         # 检查构建输出目录
         ls -la build/Build/Products/Release-iphoneos/
@@ -41,9 +43,12 @@ jobs:
       run: |
         mkdir -p Payload
         cp -r build/Build/Products/Release-iphoneos/Zomigle.app Payload/
+        # 确保 entitlements 文件被正确复制
+        cp Zomigle/Zomigle.entitlements Payload/Zomigle.app/
         
     - name: Create TIPA
       run: |
+        # 重命名为 .tipa 而不是 .ipa
         zip -r Zomigle.tipa Payload/
         
     - name: Upload Artifact
