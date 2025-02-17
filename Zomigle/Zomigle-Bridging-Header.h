@@ -8,8 +8,10 @@
 #ifndef Zomigle_Bridging_Header_h
 #define Zomigle_Bridging_Header_h
 
+#import <Foundation/Foundation.h>
+
 void respring(void);
-bool isTrollStore(void);
+BOOL isTrollStore(void);
 void setTrollStoreEnvironment(void);
 
 #endif /* Zomigle_Bridging_Header_h */
