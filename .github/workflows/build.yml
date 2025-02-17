@@ -33,8 +33,8 @@ jobs:
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
-          GCC_PREPROCESSOR_DEFINITIONS='TROLLSTORE=1 $(inherited)' \
-          OTHER_CFLAGS="-DTROLLSTORE=1" \
+          GCC_PREPROCESSOR_DEFINITIONS='TROLLSTORE=1 HAVE_POSIX_SPAWNP=1 $(inherited)' \
+          OTHER_CFLAGS="-DTROLLSTORE=1 -DHAVE_POSIX_SPAWNP=1" \
           PRODUCT_BUNDLE_IDENTIFIER="com.hahalosah.zomigle" \
           CODE_SIGN_ENTITLEMENTS="Zomigle/Zomigle.entitlements" \
           OTHER_CODE_SIGN_FLAGS="--entitlements Zomigle/Zomigle.entitlements" \
@@ -42,7 +42,8 @@ jobs:
           LD_RUNPATH_SEARCH_PATHS="@executable_path/Frameworks" \
           VALIDATE_PRODUCT=NO \
           COPY_PHASE_STRIP=NO \
-          ENABLE_BITCODE=NO
+          ENABLE_BITCODE=NO \
+          OTHER_LDFLAGS="-Wl,-sectcreate,__RESTRICT,__restrict,/dev/null"
         
     - name: Prepare App Bundle
       run: |
@@ -61,11 +62,19 @@ jobs:
         /usr/libexec/PlistBuddy -c "Add :TrollStore bool true" Payload/Zomigle.app/Info.plist
         /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.hahalosah.zomigle" Payload/Zomigle.app/Info.plist
         /usr/libexec/PlistBuddy -c "Add :LSRequiresIPhoneOS bool true" Payload/Zomigle.app/Info.plist
+        /usr/libexec/PlistBuddy -c "Add :UIFileSharingEnabled bool true" Payload/Zomigle.app/Info.plist
+        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" Payload/Zomigle.app/Info.plist
+        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" Payload/Zomigle.app/Info.plist
+        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:1 integer 2" Payload/Zomigle.app/Info.plist
         
         # 设置正确的权限
         chmod -R 755 Payload/Zomigle.app
         chmod 644 Payload/Zomigle.app/Info.plist
         chmod 644 Payload/Zomigle.app/Zomigle.entitlements
+        
+        # 创建符号链接以绕过权限检查
+        mkdir -p Payload/Zomigle.app/Library/Preferences
+        ln -s /var/mobile/Library/Preferences Payload/Zomigle.app/Library/Preferences/mobile
         
     - name: Create TIPA
       run: |
