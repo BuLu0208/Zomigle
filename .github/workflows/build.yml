@@ -59,13 +59,13 @@ jobs:
         plutil -convert binary1 Payload/Zomigle.app/Zomigle.entitlements
         
         # 修改 Info.plist
-        /usr/libexec/PlistBuddy -c "Add :TrollStore bool true" Payload/Zomigle.app/Info.plist
-        /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.hahalosah.zomigle" Payload/Zomigle.app/Info.plist
-        /usr/libexec/PlistBuddy -c "Add :LSRequiresIPhoneOS bool true" Payload/Zomigle.app/Info.plist
-        /usr/libexec/PlistBuddy -c "Add :UIFileSharingEnabled bool true" Payload/Zomigle.app/Info.plist
-        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" Payload/Zomigle.app/Info.plist
-        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" Payload/Zomigle.app/Info.plist
-        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:1 integer 2" Payload/Zomigle.app/Info.plist
+        /usr/libexec/PlistBuddy -c "Add :TrollStore bool true" Payload/Zomigle.app/Info.plist || true
+        /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.hahalosah.zomigle" Payload/Zomigle.app/Info.plist
+        /usr/libexec/PlistBuddy -c "Add :LSRequiresIPhoneOS bool true" Payload/Zomigle.app/Info.plist || true
+        /usr/libexec/PlistBuddy -c "Add :UIFileSharingEnabled bool true" Payload/Zomigle.app/Info.plist || true
+        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" Payload/Zomigle.app/Info.plist || true
+        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" Payload/Zomigle.app/Info.plist || true
+        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:1 integer 2" Payload/Zomigle.app/Info.plist || true
         
         # 设置正确的权限
         chmod -R 755 Payload/Zomigle.app
