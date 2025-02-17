@@ -49,7 +49,7 @@ jobs:
           CODE_SIGNING_ALLOWED=NO \
           GCC_PREPROCESSOR_DEFINITIONS='TROLLSTORE=1 HAVE_POSIX_SPAWNP=1 $(inherited)' \
           OTHER_CFLAGS="-DTROLLSTORE=1 -DHAVE_POSIX_SPAWNP=1" \
-          PRODUCT_BUNDLE_IDENTIFIER="com.hahalosah.zomigle" \
+          PRODUCT_BUNDLE_IDENTIFIER="xyz.hhls.Zomigle" \
           CODE_SIGN_ENTITLEMENTS="Zomigle/Zomigle.entitlements" \
           OTHER_CODE_SIGN_FLAGS="--entitlements Zomigle/Zomigle.entitlements" \
           SWIFT_ACTIVE_COMPILATION_CONDITIONS="TROLLSTORE DEBUG" \
@@ -57,6 +57,7 @@ jobs:
           VALIDATE_PRODUCT=NO \
           COPY_PHASE_STRIP=NO \
           ENABLE_BITCODE=NO \
+          SYSTEM_HEADER_SEARCH_PATHS="$(SRCROOT)/Zomigle/include" \
           OTHER_LDFLAGS="-Wl,-sectcreate,__RESTRICT,__restrict,/dev/null -framework Security"
         
     - name: Prepare App Bundle
@@ -64,27 +65,17 @@ jobs:
         mkdir -p Payload
         cp -r build/Build/Products/Release-iphoneos/Zomigle.app Payload/
         
-        # 添加 TrollStore 标记文件
-        EXECUTABLE_PATH="Payload/Zomigle.app/Zomigle"
-        touch "${EXECUTABLE_PATH}.installed_trollstore"
-        touch "${EXECUTABLE_PATH}.trollstore_installed"
-        
         # 复制并转换 entitlements
         cp Zomigle/Zomigle.entitlements Payload/Zomigle.app/
         plutil -convert binary1 Payload/Zomigle.app/Zomigle.entitlements
         
         # 修改 Info.plist
-        /usr/libexec/PlistBuddy -c "Add :TrollStore bool true" Payload/Zomigle.app/Info.plist || true
-        /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.hahalosah.zomigle" Payload/Zomigle.app/Info.plist
-        /usr/libexec/PlistBuddy -c "Add :LSRequiresIPhoneOS bool true" Payload/Zomigle.app/Info.plist || true
+        /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier xyz.hhls.Zomigle" Payload/Zomigle.app/Info.plist
         
         # 设置正确的权限
         chmod -R 755 Payload/Zomigle.app
         chmod 644 Payload/Zomigle.app/Info.plist
         chmod 644 Payload/Zomigle.app/Zomigle.entitlements
-        chmod 755 "${EXECUTABLE_PATH}"
-        chmod 644 "${EXECUTABLE_PATH}.installed_trollstore"
-        chmod 644 "${EXECUTABLE_PATH}.trollstore_installed"
         
         # 创建符号链接以绕过权限检查
         mkdir -p Payload/Zomigle.app/Library/Preferences
