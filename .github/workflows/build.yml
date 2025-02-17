@@ -46,43 +46,27 @@ jobs:
         # 备份原始文件
         cp Zomigle.xcodeproj/project.pbxproj Zomigle.xcodeproj/project.pbxproj.bak
         
-        # 添加文件引用
-        awk -v helper_uuid="$HELPER_UUID" '
-        /Begin PBXFileReference section/ {
-            print;
-            print "\t\t" helper_uuid " /* trollstore_helper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = trollstore_helper.m; sourceTree = \"<group>\"; };";
-            next;
-        }
-        {print}' Zomigle.xcodeproj/project.pbxproj > temp1
+        # 读取文件内容
+        PBXPROJ=$(cat Zomigle.xcodeproj/project.pbxproj)
         
-        # 添加构建文件
-        awk -v build_uuid="$BUILD_UUID" -v helper_uuid="$HELPER_UUID" '
-        /Begin PBXBuildFile section/ {
-            print;
-            print "\t\t" build_uuid " /* trollstore_helper.m in Sources */ = {isa = PBXBuildFile; fileRef = " helper_uuid " /* trollstore_helper.m */; };";
-            next;
-        }
-        {print}' temp1 > temp2
+        # 在 PBXFileReference section 中添加文件引用
+        FILE_REF="\t\t$HELPER_UUID /* trollstore_helper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = trollstore_helper.m; sourceTree = \"<group>\"; };"
+        PBXPROJ=$(echo "$PBXPROJ" | perl -pe "s/(Begin PBXFileReference section.*$)/\1\n$FILE_REF/")
         
-        # 添加到 Zomigle 组
-        awk -v helper_uuid="$HELPER_UUID" '
-        /path = Zomigle;/ {
-            print;
-            print "\t\t\t\t" helper_uuid " /* trollstore_helper.m */,";
-            next;
-        }
-        {print}' temp2 > temp3
+        # 在 PBXBuildFile section 中添加构建文件
+        BUILD_FILE="\t\t$BUILD_UUID /* trollstore_helper.m in Sources */ = {isa = PBXBuildFile; fileRef = $HELPER_UUID /* trollstore_helper.m */; };"
+        PBXPROJ=$(echo "$PBXPROJ" | perl -pe "s/(Begin PBXBuildFile section.*$)/\1\n$BUILD_FILE/")
         
-        # 添加到编译阶段
-        awk -v build_uuid="$BUILD_UUID" '
-        /files = \(/ {
-            print;
-            print "\t\t\t\t" build_uuid " /* trollstore_helper.m in Sources */,";
-            next;
-        }
-        {print}' temp3 > Zomigle.xcodeproj/project.pbxproj
+        # 在 Zomigle 组中添加文件
+        GROUP_FILE="\t\t\t\t$HELPER_UUID /* trollstore_helper.m */,"
+        PBXPROJ=$(echo "$PBXPROJ" | perl -pe "s/(path = Zomigle;.*$)/\1\n$GROUP_FILE/")
         
-        rm temp1 temp2 temp3
+        # 在编译阶段添加文件
+        SOURCE_FILE="\t\t\t\t$BUILD_UUID /* trollstore_helper.m in Sources */,"
+        PBXPROJ=$(echo "$PBXPROJ" | perl -pe "s/(files = \(.*$)/\1\n$SOURCE_FILE/")
+        
+        # 写回文件
+        echo "$PBXPROJ" > Zomigle.xcodeproj/project.pbxproj
 
     - name: Build Archive
       run: |
