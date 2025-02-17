@@ -1,0 +1,35 @@
+name: Build IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+        
+    - name: Build App
+      run: |
+        xcodebuild -scheme "Zomigle (Release)" -configuration Release
+        
+    - name: Create Payload Directory
+      run: |
+        mkdir Payload
+        cp -r build/Release-iphoneos/Zomigle.app Payload/
+        
+    - name: Create TIPA
+      run: |
+        zip -r Zomigle.tipa Payload/
+        
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: Zomigle
+        path: Zomigle.tipa 
