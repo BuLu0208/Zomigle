@@ -2,92 +2,50 @@ name: Build IPA
 
 on:
   push:
-    branches: [ main ]  # 当推送到 main 分支时触发
-  pull_request:
-    branches: [ main ]  # 当创建针对 main 分支的 PR 时触发
-  workflow_dispatch:    # 保留手动触发选项
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
     
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     
-    - name: Setup Xcode
+    - name: Set up Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
         xcode-version: latest-stable
-        
-    - name: Build App
+    
+    - name: Build Archive
       run: |
-        # 创建 trollstore_helper.m
-        cat > Zomigle/trollstore_helper.m << 'EOL'
-        #import <Foundation/Foundation.h>
-        #import <dlfcn.h>
-
-        bool isTrollStore() {
-            return (access("/var/mobile/Library/Preferences", R_OK) == 0) &&
-                   (access("/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist", R_OK) == 0);
-        }
-
-        void setTrollStoreEnvironment() {
-            setenv("TROLLSTORE", "1", 1);
-            chmod("/var/mobile/Library/Preferences", 0755);
-            chmod("/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist", 0644);
-        }
-        EOL
-        
-        # 使用详细输出模式构建
-        xcodebuild -scheme "Zomigle (Release)" \
+        xcodebuild archive \
+          -project Zomigle.xcodeproj \
+          -scheme "Zomigle (Release)" \
           -configuration Release \
-          -sdk iphoneos \
-          -derivedDataPath build \
-          DEVELOPMENT_TEAM="" \
+          -archivePath build/Zomigle.xcarchive \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO \
-          GCC_PREPROCESSOR_DEFINITIONS='TROLLSTORE=1 HAVE_POSIX_SPAWNP=1 $(inherited)' \
-          OTHER_CFLAGS="-DTROLLSTORE=1 -DHAVE_POSIX_SPAWNP=1" \
-          PRODUCT_BUNDLE_IDENTIFIER="xyz.hhls.Zomigle" \
-          CODE_SIGN_ENTITLEMENTS="Zomigle/Zomigle.entitlements" \
-          OTHER_CODE_SIGN_FLAGS="--entitlements Zomigle/Zomigle.entitlements" \
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS="TROLLSTORE DEBUG" \
-          LD_RUNPATH_SEARCH_PATHS="@executable_path/Frameworks" \
+          OTHER_CFLAGS="-DPLATFORM_APPLICATION=1" \
+          OTHER_SWIFT_FLAGS="-DPLATFORM_APPLICATION" \
+          PLATFORM_ENTITLEMENTS=YES \
           VALIDATE_PRODUCT=NO \
           COPY_PHASE_STRIP=NO \
           ENABLE_BITCODE=NO \
-          SYSTEM_HEADER_SEARCH_PATHS="$(SRCROOT)/Zomigle/include" \
-          OTHER_LDFLAGS="-Wl,-sectcreate,__RESTRICT,__restrict,/dev/null -framework Security"
-        
-    - name: Prepare App Bundle
+          DEVELOPMENT_TEAM="" \
+          PRODUCT_BUNDLE_IDENTIFIER="xyz.hhls.laosijijumo"
+          
+    - name: Create IPA
       run: |
-        mkdir -p Payload
-        cp -r build/Build/Products/Release-iphoneos/Zomigle.app Payload/
+        cd build
+        mkdir Payload
+        cp -r Zomigle.xcarchive/Products/Applications/Zomigle.app Payload/
+        zip -r Zomigle.ipa Payload
+        rm -rf Payload
         
-        # 添加 TrollStore 标记文件
-        touch "Payload/Zomigle.app/.trollstore_installed"
-        
-        # 复制并转换 entitlements
-        cp Zomigle/Zomigle.entitlements Payload/Zomigle.app/
-        plutil -convert binary1 Payload/Zomigle.app/Zomigle.entitlements
-        
-        # 修改 Info.plist
-        /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier xyz.hhls.Zomigle" Payload/Zomigle.app/Info.plist
-        
-        # 设置正确的权限
-        chmod -R 755 Payload/Zomigle.app
-        chmod 644 Payload/Zomigle.app/Info.plist
-        chmod 644 Payload/Zomigle.app/Zomigle.entitlements
-        chmod 644 "Payload/Zomigle.app/.trollstore_installed"
-        
-    - name: Create TIPA
-      run: |
-        zip -r Zomigle.tipa Payload/
-        
-    - name: Upload Artifact
+    - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
         name: Zomigle
-        path: Zomigle.tipa 
-        
+        path: build/Zomigle.ipa 
