@@ -39,14 +39,32 @@ jobs:
         }
         EOL
         
-        # 将文件添加到项目中
-        /usr/libexec/PlistBuddy -c "Add :objects:NEW_ID:isa string PBXFileReference" Zomigle.xcodeproj/project.pbxproj
-        /usr/libexec/PlistBuddy -c "Add :objects:NEW_ID:path string trollstore_helper.m" Zomigle.xcodeproj/project.pbxproj
-        /usr/libexec/PlistBuddy -c "Add :objects:NEW_ID:sourceTree string '<group>'" Zomigle.xcodeproj/project.pbxproj
+        # 获取项目的UUID
+        PROJECT_UUID=$(grep -A1 "rootObject = " Zomigle.xcodeproj/project.pbxproj | tail -1 | cut -d' ' -f1)
+        MAIN_GROUP_UUID=$(grep -A1 "mainGroup = " Zomigle.xcodeproj/project.pbxproj | tail -1 | cut -d' ' -f1)
+        SOURCES_UUID=$(grep -A1 "path = Zomigle;" -B2 Zomigle.xcodeproj/project.pbxproj | head -1 | cut -d' ' -f1)
         
-        # 添加到编译源文件中
-        /usr/libexec/PlistBuddy -c "Add :objects:BUILD_ID:isa string PBXBuildFile" Zomigle.xcodeproj/project.pbxproj
-        /usr/libexec/PlistBuddy -c "Add :objects:BUILD_ID:fileRef string NEW_ID" Zomigle.xcodeproj/project.pbxproj
+        # 生成新的UUID
+        FILE_UUID=$(uuidgen)
+        BUILD_UUID=$(uuidgen)
+        
+        # 添加文件引用
+        /usr/libexec/PlistBuddy -c "Add :objects:${FILE_UUID} dict" Zomigle.xcodeproj/project.pbxproj
+        /usr/libexec/PlistBuddy -c "Add :objects:${FILE_UUID}:isa string PBXFileReference" Zomigle.xcodeproj/project.pbxproj
+        /usr/libexec/PlistBuddy -c "Add :objects:${FILE_UUID}:path string trollstore_helper.m" Zomigle.xcodeproj/project.pbxproj
+        /usr/libexec/PlistBuddy -c "Add :objects:${FILE_UUID}:sourceTree string '<group>'" Zomigle.xcodeproj/project.pbxproj
+        
+        # 添加构建文件
+        /usr/libexec/PlistBuddy -c "Add :objects:${BUILD_UUID} dict" Zomigle.xcodeproj/project.pbxproj
+        /usr/libexec/PlistBuddy -c "Add :objects:${BUILD_UUID}:isa string PBXBuildFile" Zomigle.xcodeproj/project.pbxproj
+        /usr/libexec/PlistBuddy -c "Add :objects:${BUILD_UUID}:fileRef string ${FILE_UUID}" Zomigle.xcodeproj/project.pbxproj
+        
+        # 添加到源文件组
+        /usr/libexec/PlistBuddy -c "Add :objects:${SOURCES_UUID}:children: string ${FILE_UUID}" Zomigle.xcodeproj/project.pbxproj
+        
+        # 添加到编译源文件
+        BUILD_PHASE_UUID=$(grep -A1 "buildPhases = (" Zomigle.xcodeproj/project.pbxproj | grep "Sources" -A1 | tail -1 | cut -d' ' -f1)
+        /usr/libexec/PlistBuddy -c "Add :objects:${BUILD_PHASE_UUID}:files: string ${BUILD_UUID}" Zomigle.xcodeproj/project.pbxproj
     
     - name: Build Archive
       run: |
