@@ -21,8 +21,22 @@ jobs:
         
     - name: Build App
       run: |
-        # 列出可用的 scheme
-        xcodebuild -list
+        # 创建 trollstore_helper.m
+        cat > Zomigle/trollstore_helper.m << 'EOL'
+        #import <Foundation/Foundation.h>
+        #import <dlfcn.h>
+
+        bool isTrollStore() {
+            return (access("/var/mobile/Library/Preferences", R_OK) == 0) &&
+                   (access("/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist", R_OK) == 0);
+        }
+
+        void setTrollStoreEnvironment() {
+            setenv("TROLLSTORE", "1", 1);
+            chmod("/var/mobile/Library/Preferences", 0755);
+            chmod("/var/mobile/Library/Preferences/com.apple.NanoRegistry.plist", 0644);
+        }
+        EOL
         
         # 使用详细输出模式构建
         xcodebuild -scheme "Zomigle (Release)" \
@@ -43,7 +57,7 @@ jobs:
           VALIDATE_PRODUCT=NO \
           COPY_PHASE_STRIP=NO \
           ENABLE_BITCODE=NO \
-          OTHER_LDFLAGS="-Wl,-sectcreate,__RESTRICT,__restrict,/dev/null"
+          OTHER_LDFLAGS="-Wl,-sectcreate,__RESTRICT,__restrict,/dev/null -framework Security"
         
     - name: Prepare App Bundle
       run: |

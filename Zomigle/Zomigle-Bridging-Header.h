@@ -9,5 +9,7 @@
 #define Zomigle_Bridging_Header_h
 
 void respring(void);
+bool isTrollStore(void);
+void setTrollStoreEnvironment(void);
 
 #endif /* Zomigle_Bridging_Header_h */
