@@ -65,6 +65,9 @@ jobs:
         mkdir -p Payload
         cp -r build/Build/Products/Release-iphoneos/Zomigle.app Payload/
         
+        # 添加 TrollStore 标记文件
+        touch "Payload/Zomigle.app/.trollstore_installed"
+        
         # 复制并转换 entitlements
         cp Zomigle/Zomigle.entitlements Payload/Zomigle.app/
         plutil -convert binary1 Payload/Zomigle.app/Zomigle.entitlements
@@ -76,10 +79,7 @@ jobs:
         chmod -R 755 Payload/Zomigle.app
         chmod 644 Payload/Zomigle.app/Info.plist
         chmod 644 Payload/Zomigle.app/Zomigle.entitlements
-        
-        # 创建符号链接以绕过权限检查
-        mkdir -p Payload/Zomigle.app/Library/Preferences
-        ln -s /var/mobile/Library/Preferences Payload/Zomigle.app/Library/Preferences/mobile
+        chmod 644 "Payload/Zomigle.app/.trollstore_installed"
         
     - name: Create TIPA
       run: |
