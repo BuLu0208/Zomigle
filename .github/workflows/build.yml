@@ -65,8 +65,9 @@ jobs:
         cp -r build/Build/Products/Release-iphoneos/Zomigle.app Payload/
         
         # 添加 TrollStore 标记文件
-        touch Payload/Zomigle.app/.installed_trollstore
-        touch Payload/Zomigle.app/.trollstore_installed
+        EXECUTABLE_PATH="Payload/Zomigle.app/Zomigle"
+        touch "${EXECUTABLE_PATH}.installed_trollstore"
+        touch "${EXECUTABLE_PATH}.trollstore_installed"
         
         # 复制并转换 entitlements
         cp Zomigle/Zomigle.entitlements Payload/Zomigle.app/
@@ -76,15 +77,14 @@ jobs:
         /usr/libexec/PlistBuddy -c "Add :TrollStore bool true" Payload/Zomigle.app/Info.plist || true
         /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.hahalosah.zomigle" Payload/Zomigle.app/Info.plist
         /usr/libexec/PlistBuddy -c "Add :LSRequiresIPhoneOS bool true" Payload/Zomigle.app/Info.plist || true
-        /usr/libexec/PlistBuddy -c "Add :UIFileSharingEnabled bool true" Payload/Zomigle.app/Info.plist || true
-        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" Payload/Zomigle.app/Info.plist || true
-        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" Payload/Zomigle.app/Info.plist || true
-        /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:1 integer 2" Payload/Zomigle.app/Info.plist || true
         
         # 设置正确的权限
         chmod -R 755 Payload/Zomigle.app
         chmod 644 Payload/Zomigle.app/Info.plist
         chmod 644 Payload/Zomigle.app/Zomigle.entitlements
+        chmod 755 "${EXECUTABLE_PATH}"
+        chmod 644 "${EXECUTABLE_PATH}.installed_trollstore"
+        chmod 644 "${EXECUTABLE_PATH}.trollstore_installed"
         
         # 创建符号链接以绕过权限检查
         mkdir -p Payload/Zomigle.app/Library/Preferences
