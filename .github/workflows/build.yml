@@ -46,21 +46,28 @@ jobs:
         # 备份原始文件
         cp Zomigle.xcodeproj/project.pbxproj Zomigle.xcodeproj/project.pbxproj.bak
         
-        # 添加文件引用到 PBXFileReference section
-        sed -i '' "/\/\* Begin PBXFileReference section \*\// a\\
-        \\t\\t$HELPER_UUID /* trollstore_helper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = trollstore_helper.m; sourceTree = \"<group>\"; };" Zomigle.xcodeproj/project.pbxproj
+        # 创建临时文件
+        cat > pbxproj_changes.txt << EOF
+        /* Begin PBXFileReference section */
+        		$HELPER_UUID /* trollstore_helper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = trollstore_helper.m; sourceTree = "<group>"; };
+        /* End PBXFileReference section */
         
-        # 添加构建文件到 PBXBuildFile section
-        sed -i '' "/\/\* Begin PBXBuildFile section \*\// a\\
-        \\t\\t$BUILD_UUID /* trollstore_helper.m in Sources */ = {isa = PBXBuildFile; fileRef = $HELPER_UUID /* trollstore_helper.m */; };" Zomigle.xcodeproj/project.pbxproj
+        /* Begin PBXBuildFile section */
+        		$BUILD_UUID /* trollstore_helper.m in Sources */ = {isa = PBXBuildFile; fileRef = $HELPER_UUID /* trollstore_helper.m */; };
+        /* End PBXBuildFile section */
+        EOF
+        
+        # 使用 plutil 合并更改
+        plutil -insert "objects.$HELPER_UUID" -json '{"isa":"PBXFileReference","fileEncoding":4,"lastKnownFileType":"sourcecode.c.objc","path":"trollstore_helper.m","sourceTree":"<group>"}' Zomigle.xcodeproj/project.pbxproj
+        plutil -insert "objects.$BUILD_UUID" -json '{"isa":"PBXBuildFile","fileRef":"'$HELPER_UUID'"}' Zomigle.xcodeproj/project.pbxproj
         
         # 添加到 Zomigle 组
-        sed -i '' "/path = Zomigle;/ a\\
-        \\t\\t\\t\\t$HELPER_UUID /* trollstore_helper.m */," Zomigle.xcodeproj/project.pbxproj
+        GROUP_UUID=$(plutil -extract objects.D0D353BD2B92E01300555898.children xml1 -o - Zomigle.xcodeproj/project.pbxproj | grep -A1 "array" | tail -1 | sed 's/.*>\(.*\)<.*/\1/')
+        plutil -insert "objects.D0D353BD2B92E01300555898.children.-1" -string "$HELPER_UUID" Zomigle.xcodeproj/project.pbxproj
         
         # 添加到编译阶段
-        sed -i '' "/files = (/ a\\
-        \\t\\t\\t\\t$BUILD_UUID /* trollstore_helper.m in Sources */," Zomigle.xcodeproj/project.pbxproj
+        BUILD_PHASE_UUID=$(plutil -extract objects.D0D353B72B92E01300555898.files xml1 -o - Zomigle.xcodeproj/project.pbxproj | grep -A1 "array" | tail -1 | sed 's/.*>\(.*\)<.*/\1/')
+        plutil -insert "objects.D0D353B72B92E01300555898.files.-1" -string "$BUILD_UUID" Zomigle.xcodeproj/project.pbxproj
         
         # 验证文件格式
         if ! plutil -lint Zomigle.xcodeproj/project.pbxproj; then
