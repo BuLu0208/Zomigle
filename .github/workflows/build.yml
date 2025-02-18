@@ -49,24 +49,27 @@ jobs:
         # 读取文件内容
         PBXPROJ=$(cat Zomigle.xcodeproj/project.pbxproj)
         
-        # 在 PBXFileReference section 中添加文件引用
-        FILE_REF="\t\t$HELPER_UUID /* trollstore_helper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = trollstore_helper.m; sourceTree = \"<group>\"; };"
-        PBXPROJ=$(echo "$PBXPROJ" | perl -0pe "s/(\/\* Begin PBXFileReference section \*\/\n)/\1$FILE_REF\n/")
+        # 准备替换内容
+        FILE_REF="		$HELPER_UUID /* trollstore_helper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = trollstore_helper.m; sourceTree = \"<group>\"; };"
+        BUILD_FILE="		$BUILD_UUID /* trollstore_helper.m in Sources */ = {isa = PBXBuildFile; fileRef = $HELPER_UUID /* trollstore_helper.m */; };"
+        GROUP_FILE="				$HELPER_UUID /* trollstore_helper.m */,"
+        SOURCE_FILE="				$BUILD_UUID /* trollstore_helper.m in Sources */,"
         
-        # 在 PBXBuildFile section 中添加构建文件
-        BUILD_FILE="\t\t$BUILD_UUID /* trollstore_helper.m in Sources */ = {isa = PBXBuildFile; fileRef = $HELPER_UUID /* trollstore_helper.m */; };"
-        PBXPROJ=$(echo "$PBXPROJ" | perl -0pe "s/(\/\* Begin PBXBuildFile section \*\/\n)/\1$BUILD_FILE\n/")
+        # 执行替换
+        echo "$PBXPROJ" | perl -0pe '
+          s#(/\* Begin PBXFileReference section \*/\n)#$1'"$FILE_REF"'\n#;
+          s#(/\* Begin PBXBuildFile section \*/\n)#$1'"$BUILD_FILE"'\n#;
+          s#(path = Zomigle;\n)#$1'"$GROUP_FILE"'\n#;
+          s#(files = \(\n)#$1'"$SOURCE_FILE"'\n#;
+        ' > Zomigle.xcodeproj/project.pbxproj.new
         
-        # 在 Zomigle 组中添加文件
-        GROUP_FILE="\t\t\t\t$HELPER_UUID /* trollstore_helper.m */,"
-        PBXPROJ=$(echo "$PBXPROJ" | perl -0pe "s/(path = Zomigle;\n)/\1$GROUP_FILE\n/")
-        
-        # 在编译阶段添加文件
-        SOURCE_FILE="\t\t\t\t$BUILD_UUID /* trollstore_helper.m in Sources */,"
-        PBXPROJ=$(echo "$PBXPROJ" | perl -0pe "s/(files = \(\n)/\1$SOURCE_FILE\n/")
-        
-        # 写回文件
-        echo "$PBXPROJ" > Zomigle.xcodeproj/project.pbxproj
+        # 检查文件是否正确生成
+        if [ -s Zomigle.xcodeproj/project.pbxproj.new ]; then
+          mv Zomigle.xcodeproj/project.pbxproj.new Zomigle.xcodeproj/project.pbxproj
+        else
+          echo "Error: Failed to generate project file"
+          exit 1
+        fi
 
     - name: Build Archive
       run: |
